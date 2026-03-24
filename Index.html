@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Currency Converter</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-1: #020617;
+      --bg-2: #0f172a;
+      --bg-3: #111827;
+      --card: rgba(255, 255, 255, 0.06);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+      --accent-2: #6366f1;
+      --success-bg: rgba(34, 211, 238, 0.08);
+      --success-border: rgba(34, 211, 238, 0.22);
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --danger-border: rgba(239, 68, 68, 0.25);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(99, 102, 241, 0.14), transparent 26%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+      color: var(--text);
+    }
+
+    .header {
+      background: rgba(2, 6, 23, 0.65);
+      backdrop-filter: blur(12px);
+      color: white;
+      padding: 22px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 28px auto;
+      padding: 0 16px 30px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 18px;
+      font-size: 24px;
+      color: #f8fafc;
+    }
+
+    .converter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto 1fr auto;
+      gap: 14px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 14px 14px;
+      font-size: 16px;
+      box-sizing: border-box;
+      border-radius: 16px;
+      outline: none;
+    }
+
+    input, select {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      transition: 0.2s ease;
+    }
+
+    input::placeholder {
+      color: #7c8ba1;
+    }
+
+    input:focus, select:focus {
+      border-color: rgba(34, 211, 238, 0.55);
+      box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+    }
+
+    select option,
+    optgroup {
+      color: #111827;
+      background: #ffffff;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      font-weight: 700;
+      transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 10px 24px rgba(34, 211, 238, 0.18);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      opacity: 0.96;
+      box-shadow: 0 14px 28px rgba(34, 211, 238, 0.22);
+    }
+
+    .swap-btn {
+      width: 54px;
+      height: 52px;
+      padding: 0;
+      font-size: 22px;
+      background: linear-gradient(135deg, #1e293b, #334155);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+    }
+
+    .swap-btn:hover {
+      background: linear-gradient(135deg, #334155, #475569);
+    }
+
+    .loader-wrap {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .loader {
+      width: 38px;
+      height: 38px;
+      border: 4px solid rgba(255,255,255,0.15);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .error {
+      color: #fecaca;
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      padding: 14px;
+      border-radius: 14px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .result-box {
+      margin-top: 20px;
+      padding: 22px;
+      border-radius: 20px;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+    }
+
+    .result-main {
+      font-size: 32px;
+      font-weight: 800;
+      margin: 8px 0;
+      color: #ffffff;
+      word-break: break-word;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+      min-width: 520px;
+    }
+
+    thead th {
+      background: rgba(15, 23, 42, 0.9);
+      color: #f8fafc;
+      padding: 14px 12px;
+      font-size: 14px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    tbody td {
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 14px 12px;
+      text-align: center;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+    }
+
+    tbody td:first-child {
+      font-weight: bold;
+      text-align: left;
+      background: rgba(255,255,255,0.05);
+      color: #f8fafc;
+    }
+
+    .summary p {
+      line-height: 1.8;
+      margin: 0 0 16px;
+      color: var(--text);
+    }
+
+    .chart-card canvas {
+      width: 100% !important;
+      max-height: 420px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .converter-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .swap-btn {
+        width: 100%;
+        height: 50px;
+      }
+
+      .result-main {
+        font-size: 26px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Currency Converter</h1>
+    <p>Live fiat and crypto conversion with chart, stats, and premium dark UI</p>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="pill">Premium Live Converter</div>
+      <h2>Convert Currency</h2>
+
+      <div class="converter-grid">
+        <div class="field">
+          <label>Amount</label>
+          <input type="number" id="amount" value="1" min="0" step="any" />
+        </div>
+
+        <div class="field">
+          <label>From</label>
+          <select id="from">
+            <optgroup label="Fiat">
+              <option value="USD">USD - US Dollar</option>
+              <option value="INR">INR - Indian Rupee</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="AED">AED - UAE Dirham</option>
+              <option value="JPY">JPY - Japanese Yen</option>
+              <option value="CAD">CAD - Canadian Dollar</option>
+              <option value="AUD">AUD - Australian Dollar</option>
+              <option value="CHF">CHF - Swiss Franc</option>
+              <option value="SGD">SGD - Singapore Dollar</option>
+              <option value="NZD">NZD - New Zealand Dollar</option>
+              <option value="CNY">CNY - Chinese Yuan</option>
+              <option value="HKD">HKD - Hong Kong Dollar</option>
+              <option value="SEK">SEK - Swedish Krona</option>
+              <option value="NOK">NOK - Norwegian Krone</option>
+              <option value="DKK">DKK - Danish Krone</option>
+              <option value="ZAR">ZAR - South African Rand</option>
+              <option value="BRL">BRL - Brazilian Real</option>
+              <option value="MXN">MXN - Mexican Peso</option>
+              <option value="SAR">SAR - Saudi Riyal</option>
+              <option value="QAR">QAR - Qatari Riyal</option>
+              <option value="KWD">KWD - Kuwaiti Dinar</option>
+              <option value="BHD">BHD - Bahraini Dinar</option>
+              <option value="OMR">OMR - Omani Rial</option>
+              <option value="TRY">TRY - Turkish Lira</option>
+              <option value="PLN">PLN - Polish Zloty</option>
+              <option value="CZK">CZK - Czech Koruna</option>
+              <option value="HUF">HUF - Hungarian Forint</option>
+              <option value="RON">RON - Romanian Leu</option>
+              <option value="ILS">ILS - Israeli New Shekel</option>
+              <option value="EGP">EGP - Egyptian Pound</option>
+              <option value="PKR">PKR - Pakistani Rupee</option>
+              <option value="BDT">BDT - Bangladeshi Taka</option>
+              <option value="LKR">LKR - Sri Lankan Rupee</option>
+              <option value="NPR">NPR - Nepalese Rupee</option>
+              <option value="VND">VND - Vietnamese Dong</option>
+            </optgroup>
+            <optgroup label="Crypto">
+              <option value="BTC">BTC - Bitcoin</option>
+              <option value="ETH">ETH - Ethereum</option>
+              <option value="USDT">USDT - Tether</option>
+              <option value="USDC">USDC - USD Coin</option>
+              <option value="BNB">BNB - BNB</option>
+              <option value="SOL">SOL - Solana</option>
+              <option value="XRP">XRP - XRP</option>
+              <option value="ADA">ADA - Cardano</option>
+              <option value="DOGE">DOGE - Dogecoin</option>
+              <option value="TRX">TRX - Tron</option>
+              <option value="TON">TON - Toncoin</option>
+              <option value="AVAX">AVAX - Avalanche</option>
+              <option value="DOT">DOT - Polkadot</option>
+              <option value="MATIC">MATIC - Polygon</option>
+              <option value="LINK">LINK - Chainlink</option>
+              <option value="LTC">LTC - Litecoin</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <button class="swap-btn" id="swapBtn" title="Swap">⇄</button>
+
+        <div class="field">
+          <label>To</label>
+          <select id="to">
+            <optgroup label="Fiat">
+              <option value="INR">INR - Indian Rupee</option>
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="AED">AED - UAE Dirham</option>
+              <option value="JPY">JPY - Japanese Yen</option>
+              <option value="CAD">CAD - Canadian Dollar</option>
+              <option value="AUD">AUD - Australian Dollar</option>
+              <option value="CHF">CHF - Swiss Franc</option>
+              <option value="SGD">SGD - Singapore Dollar</option>
+              <option value="NZD">NZD - New Zealand Dollar</option>
+              <option value="CNY">CNY - Chinese Yuan</option>
+              <option value="HKD">HKD - Hong Kong Dollar</option>
+              <option value="SEK">SEK - Swedish Krona</option>
+              <option value="NOK">NOK - Norwegian Krone</option>
+              <option value="DKK">DKK - Danish Krone</option>
+              <option value="ZAR">ZAR - South African Rand</option>
+              <option value="BRL">BRL - Brazilian Real</option>
+              <option value="MXN">MXN - Mexican Peso</option>
+              <option value="SAR">SAR - Saudi Riyal</option>
+              <option value="QAR">QAR - Qatari Riyal</option>
+              <option value="KWD">KWD - Kuwaiti Dinar</option>
+              <option value="BHD">BHD - Bahraini Dinar</option>
+              <option value="OMR">OMR - Omani Rial</option>
+              <option value="TRY">TRY - Turkish Lira</option>
+              <option value="PLN">PLN - Polish Zloty</option>
+              <option value="CZK">CZK - Czech Koruna</option>
+              <option value="HUF">HUF - Hungarian Forint</option>
+              <option value="RON">RON - Romanian Leu</option>
+              <option value="ILS">ILS - Israeli New Shekel</option>
+              <option value="EGP">EGP - Egyptian Pound</option>
+              <option value="PKR">PKR - Pakistani Rupee</option>
+              <option value="BDT">BDT - Bangladeshi Taka</option>
+              <option value="LKR">LKR - Sri Lankan Rupee</option>
+              <option value="NPR">NPR - Nepalese Rupee</option>
+              <option value="VND">VND - Vietnamese Dong</option>
+            </optgroup>
+            <optgroup label="Crypto">
+              <option value="BTC">BTC - Bitcoin</option>
+              <option value="ETH">ETH - Ethereum</option>
+              <option value="USDT">USDT - Tether</option>
+              <option value="USDC">USDC - USD Coin</option>
+              <option value="BNB">BNB - BNB</option>
+              <option value="SOL">SOL - Solana</option>
+              <option value="XRP">XRP - XRP</option>
+              <option value="ADA">ADA - Cardano</option>
+              <option value="DOGE">DOGE - Dogecoin</option>
+              <option value="TRX">TRX - Tron</option>
+              <option value="TON">TON - Toncoin</option>
+              <option value="AVAX">AVAX - Avalanche</option>
+              <option value="DOT">DOT - Polkadot</option>
+              <option value="MATIC">MATIC - Polygon</option>
+              <option value="LINK">LINK - Chainlink</option>
+              <option value="LTC">LTC - Litecoin</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <button id="convertBtn">Convert</button>
+      </div>
+
+      <div class="loader-wrap" id="loadingWrap">
+        <div class="loader"></div>
+        <span>Loading live conversion data...</span>
+      </div>
+
+      <div class="error" id="errorBox"></div>
+
+      <div class="result-box">
+        <div class="muted" id="pairLabel">--</div>
+        <div class="result-main" id="result">--</div>
+        <div class="muted" id="rate">--</div>
+        <div class="muted" id="updated">--</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="pill">Market Statistics</div>
+        <h2>Statistics</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Last 7 days</th>
+                <th>Last 30 days</th>
+                <th>Last 90 days</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>High</td>
+                <td id="high7">--</td>
+                <td id="high30">--</td>
+                <td id="high90">--</td>
+              </tr>
+              <tr>
+                <td>Low</td>
+                <td id="low7">--</td>
+                <td id="low30">--</td>
+                <td id="low90">--</td>
+              </tr>
+              <tr>
+                <td>Average</td>
+                <td id="avg7">--</td>
+                <td id="avg30">--</td>
+                <td id="avg90">--</td>
+              </tr>
+              <tr>
+                <td>Volatility</td>
+                <td id="vol7">--</td>
+                <td id="vol30">--</td>
+                <td id="vol90">--</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card summary">
+        <div class="pill">Quick Summary</div>
+        <h2 id="summaryTitle">Statistics Summary</h2>
+        <p id="summary7">--</p>
+        <p id="summary30">--</p>
+        <p id="summary90">--</p>
+      </div>
+    </div>
+
+    <div class="card chart-card">
+      <div class="pill">90 Day Trend</div>
+      <h2>Last 90 Days Chart</h2>
+      <canvas id="historyChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const CONVERT_URL = "https://n8n.mycliniq.app/webhook/currency-converter";
+
+    const amountEl = document.getElementById("amount");
+    const fromEl = document.getElementById("from");
+    const toEl = document.getElementById("to");
+    const convertBtn = document.getElementById("convertBtn");
+    const swapBtn = document.getElementById("swapBtn");
+    const errorBox = document.getElementById("errorBox");
+    const loadingWrap = document.getElementById("loadingWrap");
+
+    let chartInstance = null;
+    let debounceTimer = null;
+
+    function showError(message) {
+      errorBox.style.display = "block";
+      errorBox.innerText = message;
+    }
+
+    function hideError() {
+      errorBox.style.display = "none";
+      errorBox.innerText = "";
+    }
+
+    function showLoading() {
+      loadingWrap.style.display = "flex";
+    }
+
+    function hideLoading() {
+      loadingWrap.style.display = "none";
+    }
+
+    function formatNumber(value) {
+      const num = Number(value);
+      if (Number.isNaN(num)) return "--";
+      return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
+    }
+
+    function formatPercent(value) {
+      const num = Number(value);
+      if (Number.isNaN(num)) return "--";
+      return num.toFixed(2) + "%";
+    }
+
+    function clearUIOnError() {
+      document.getElementById("pairLabel").innerText = "--";
+      document.getElementById("result").innerText = "--";
+      document.getElementById("rate").innerText = "--";
+      document.getElementById("updated").innerText = "--";
+
+      document.getElementById("high7").innerText = "--";
+      document.getElementById("high30").innerText = "--";
+      document.getElementById("high90").innerText = "--";
+
+      document.getElementById("low7").innerText = "--";
+      document.getElementById("low30").innerText = "--";
+      document.getElementById("low90").innerText = "--";
+
+      document.getElementById("avg7").innerText = "--";
+      document.getElementById("avg30").innerText = "--";
+      document.getElementById("avg90").innerText = "--";
+
+      document.getElementById("vol7").innerText = "--";
+      document.getElementById("vol30").innerText = "--";
+      document.getElementById("vol90").innerText = "--";
+
+      document.getElementById("summaryTitle").innerText = "Statistics Summary";
+      document.getElementById("summary7").innerText = "--";
+      document.getElementById("summary30").innerText = "--";
+      document.getElementById("summary90").innerText = "--";
+
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+    }
+
+    function updateStatsTable(stats) {
+      if (!stats) return;
+
+      document.getElementById("high7").innerText = formatNumber(stats["7"]?.high);
+      document.getElementById("high30").innerText = formatNumber(stats["30"]?.high);
+      document.getElementById("high90").innerText = formatNumber(stats["90"]?.high);
+
+      document.getElementById("low7").innerText = formatNumber(stats["7"]?.low);
+      document.getElementById("low30").innerText = formatNumber(stats["30"]?.low);
+      document.getElementById("low90").innerText = formatNumber(stats["90"]?.low);
+
+      document.getElementById("avg7").innerText = formatNumber(stats["7"]?.average);
+      document.getElementById("avg30").innerText = formatNumber(stats["30"]?.average);
+      document.getElementById("avg90").innerText = formatNumber(stats["90"]?.average);
+
+      document.getElementById("vol7").innerText = formatPercent(stats["7"]?.volatility);
+      document.getElementById("vol30").innerText = formatPercent(stats["30"]?.volatility);
+      document.getElementById("vol90").innerText = formatPercent(stats["90"]?.volatility);
+    }
+
+    function updateSummary(from, to, summary) {
+      document.getElementById("summaryTitle").innerText = `${from} to ${to} Statistics`;
+      document.getElementById("summary7").innerText = summary?.["7"] || "--";
+      document.getElementById("summary30").innerText = summary?.["30"] || "--";
+      document.getElementById("summary90").innerText = summary?.["90"] || "--";
+    }
+
+    function updateChart(series, from, to) {
+      const canvas = document.getElementById("historyChart");
+      if (!canvas || typeof Chart === "undefined") return;
+
+      const ctx = canvas.getContext("2d");
+      const labels = (series || []).map(item => item.date);
+      const values = (series || []).map(item => item.price);
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: `${from} to ${to}`,
+            data: values,
+            borderColor: "#22d3ee",
+            backgroundColor: "rgba(34, 211, 238, 0.10)",
+            pointBackgroundColor: "#22d3ee",
+            pointBorderColor: "#22d3ee",
+            pointRadius: 1.5,
+            pointHoverRadius: 4,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: "#e2e8f0"
+              }
+            },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              titleColor: "#f8fafc",
+              bodyColor: "#e2e8f0",
+              borderColor: "rgba(255,255,255,0.1)",
+              borderWidth: 1
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                maxTicksLimit: 10,
+                color: "#94a3b8"
+              },
+              grid: {
+                color: "rgba(255,255,255,0.06)"
+              }
+            },
+            y: {
+              beginAtZero: false,
+              ticks: {
+                color: "#94a3b8"
+              },
+              grid: {
+                color: "rgba(255,255,255,0.06)"
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function loadConverterData() {
+      const amount = amountEl.value || 1;
+      const from = fromEl.value;
+      const to = toEl.value;
+
+      hideError();
+      showLoading();
+
+      try {
+        const url = `${CONVERT_URL}?amount=${encodeURIComponent(amount)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!res.ok || data.error || data.success === false) {
+          throw new Error(data.message || data.error || "Conversion failed");
+        }
+
+        document.getElementById("pairLabel").innerText = `${amount} ${from} to ${to}`;
+        document.getElementById("result").innerText = `${formatNumber(data.converted)} ${to}`;
+        document.getElementById("rate").innerText = `1 ${from} = ${formatNumber(data.rate)} ${to}`;
+
+        const indiaNow = new Date().toLocaleString("en-IN", {
+  timeZone: "Asia/Kolkata",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: true
+});
+
+document.getElementById("updated").innerText = `Updated at: ${indiaNow} IST`;
+        updateStatsTable(data.stats);
+        updateSummary(from, to, data.summary);
+        updateChart(data.series, from, to);
+
+      } catch (error) {
+        showError(error.message || "Something went wrong");
+        clearUIOnError();
+        console.error(error);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function debounceConvert() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadConverterData();
+      }, 500);
+    }
+
+    convertBtn.addEventListener("click", loadConverterData);
+
+    swapBtn.addEventListener("click", () => {
+      const temp = fromEl.value;
+      fromEl.value = toEl.value;
+      toEl.value = temp;
+      loadConverterData();
+    });
+
+    amountEl.addEventListener("input", debounceConvert);
+    fromEl.addEventListener("change", loadConverterData);
+    toEl.addEventListener("change", loadConverterData);
+
+    window.addEventListener("load", loadConverterData);
+  </script>
+</body>
+</html>
